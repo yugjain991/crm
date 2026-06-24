@@ -52,7 +52,7 @@ export default function EmployeeTasksView({ employees, onAssignClick, onShowToas
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/tasks');
+      const res = await fetch(`/api/tasks?_t=${Date.now()}`);
       const data = await res.json();
       // Migrate old tasks that may still have single assignedEmployeeId
       const migrated = data.map((t: any) => ({
