@@ -146,7 +146,7 @@ export default function EnxtBrainApp() {
   const [dbSyncStatus, setDbSyncStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [globalToast, setGlobalToast] = useState<{ message: string; type: "success" | "error" | "loading" } | null>(null);
   
-  const [isAiPanelOpen, setIsAiPanelOpen] = useState(true);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [activeTabRect, setActiveTabRect] = useState<{ left: number; width: number; top: number; height: number } | null>(null);
   const navContainerRef = useRef<HTMLDivElement>(null);
 
