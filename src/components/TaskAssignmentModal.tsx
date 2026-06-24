@@ -98,7 +98,10 @@ export default function TaskAssignmentModal({
             updates: { title, description, dueDate, status, assignedEmployeeIds: selectedEmployeeIds },
           }),
         });
-        if (!res.ok) throw new Error('Failed to update task');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to update task');
+        }
         onShowToast?.('✅ Task updated successfully!', 'success');
       } else {
         // ── CREATE MODE: POST new task ──────────────────────────────
@@ -110,7 +113,10 @@ export default function TaskAssignmentModal({
             assignedEmployeeIds: selectedEmployeeIds,
           }),
         });
-        if (!res.ok) throw new Error('Failed to create task');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to create task');
+        }
 
         // Send WhatsApp notifications to each assignee
         const selectedEmployees = employees.filter((e) => selectedEmployeeIds.includes(e.id));
@@ -154,9 +160,9 @@ export default function TaskAssignmentModal({
       reset();
       setOpen(false);
       onTaskCreated?.();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      onShowToast?.(isEditMode ? 'Could not update task.' : 'Could not create task.', 'error');
+      onShowToast?.(err.message || (isEditMode ? 'Could not update task.' : 'Could not create task.'), 'error');
     } finally {
       setSubmitting(false);
     }

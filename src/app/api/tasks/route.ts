@@ -78,12 +78,15 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     
     return NextResponse.json(mapRowToTask(data));
-  } catch (error) {
-    console.error("Failed to create task in Supabase:", error);
-    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Failed to create task:", error);
+    return NextResponse.json({ error: error?.message || "Failed to create task" }, { status: 500 });
   }
 }
 
