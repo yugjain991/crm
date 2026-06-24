@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { NextResponse } from 'next/server';
+import { supabase } from '../../../lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,13 +156,28 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const specificTaskId = url.searchParams.get('taskId');
 
-    // Load tasks
-    const tasksRaw = JSON.parse(await fs.readFile(tasksFile, 'utf-8').catch(() => '[]'));
-    const allTasks: Task[] = migrateTasks(tasksRaw);
+    // Load tasks from Supabase
+    const { data: tasksData, error: tasksError } = await supabase.from('tasks').select('*');
+    if (tasksError) throw tasksError;
 
-    // Load employees (documents of type 'employee')
-    const docsRaw = JSON.parse(await fs.readFile(documentsFile, 'utf-8').catch(() => '[]'));
-    const employees: Employee[] = docsRaw.filter((d: any) => d.type === 'employee');
+    const allTasks: Task[] = (tasksData || []).map(row => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      dueDate: row.due_date,
+      status: row.status,
+      assignedEmployeeIds: row.assigned_employee_ids || [],
+    }));
+
+    // Load employees from Supabase app_data
+    const { data: docsData, error: docsError } = await supabase
+      .from('app_data')
+      .select('data')
+      .eq('key', 'documents')
+      .single();
+      
+    const docsRaw = docsError || !docsData ? [] : docsData.data;
+    const employees: Employee[] = Array.isArray(docsRaw) ? docsRaw.filter((d: any) => d.type === 'employee') : [];
 
     // Build employee lookup map
     const employeeMap = new Map<string, Employee>();

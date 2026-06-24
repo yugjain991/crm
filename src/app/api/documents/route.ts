@@ -1,29 +1,32 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import { supabase } from "../../../lib/supabase";
 import { brainDocuments } from "../../../lib/demo-documents";
 
 export const dynamic = "force-dynamic";
 
-const dataFilePath = path.join(process.cwd(), "src", "data", "documents.json");
-
 export async function GET() {
   try {
-    // Try to read the file
-    try {
-      const fileData = await fs.readFile(dataFilePath, "utf8");
-      return NextResponse.json(JSON.parse(fileData));
-    } catch (err: any) {
-      // If file doesn't exist, create it with the initial mock data
-      if (err.code === "ENOENT") {
-        await fs.mkdir(path.dirname(dataFilePath), { recursive: true });
-        await fs.writeFile(dataFilePath, JSON.stringify(brainDocuments, null, 2), "utf8");
+    const { data, error } = await supabase
+      .from('app_data')
+      .select('data')
+      .eq('key', 'documents')
+      .single();
+
+    if (error) {
+      // PGRST116 means no rows found (single() expects exactly 1 row)
+      if (error.code === 'PGRST116') {
+        // Initialize with mock data
+        await supabase
+          .from('app_data')
+          .insert({ key: 'documents', data: brainDocuments });
         return NextResponse.json(brainDocuments);
       }
-      throw err;
+      throw error;
     }
+
+    return NextResponse.json(data.data);
   } catch (error) {
-    console.error("Failed to read documents:", error);
+    console.error("Failed to read documents from Supabase:", error);
     return NextResponse.json({ error: "Failed to read documents" }, { status: 500 });
   }
 }
@@ -32,15 +35,15 @@ export async function POST(request: Request) {
   try {
     const documents = await request.json();
     
-    // Ensure the directory exists
-    await fs.mkdir(path.dirname(dataFilePath), { recursive: true });
-    
-    // Write the new documents payload to the file
-    await fs.writeFile(dataFilePath, JSON.stringify(documents, null, 2), "utf8");
+    const { error } = await supabase
+      .from('app_data')
+      .upsert({ key: 'documents', data: documents });
+      
+    if (error) throw error;
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to save documents:", error);
+    console.error("Failed to save documents to Supabase:", error);
     return NextResponse.json({ error: "Failed to save documents" }, { status: 500 });
   }
 }
