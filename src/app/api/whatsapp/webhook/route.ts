@@ -176,7 +176,7 @@ Reply to them in a helpful, professional, and concise manner. Let them know you 
         try {
           const model = process.env.GEMINI_MODEL ?? "gemini-1.5-flash";
           const tasksContext = employeeTasks.length > 0 
-            ? employeeTasks.map((t: any) => `- ${t.title} (Status: ${t.status})`).join('\n') 
+            ? employeeTasks.map((t: any) => `- ${t.title} (Status: ${t.status})`).join('\n')
             : 'No active tasks.';
             
           const prompt = `You are Enxt Brain, an AI assistant for Enxt. You are talking to an employee named ${employeeName}. 
