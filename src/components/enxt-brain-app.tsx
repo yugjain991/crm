@@ -78,7 +78,8 @@ const asStringList = (document: BrainDocument, key: string) => {
 };
 
 const presentLabel = (value: string) => (value.trim() ? value : "Missing");
-const salaryInputToNumber = (value: string) => {
+const salaryInputToNumber = (value?: string) => {
+  if (!value) return 0;
   const cleaned = value.trim().toLowerCase();
 
   if (!cleaned || cleaned === "-") {
