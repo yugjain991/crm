@@ -469,6 +469,34 @@ export default function EnxtBrainApp() {
     });
   };
 
+  const addLead = (fields: LeadEditState) => {
+    setDocuments((current) => {
+      const potentialValueInr = salaryInputToNumber(fields.potentialValueInr || fields.contractValue);
+      const stage = fields.stage || "Old Leads";
+      const newId = `lead-${fields.company?.toLowerCase().replace(/\s+/g, "-") || Date.now()}`;
+      
+      const newLead: BrainDocument = {
+        id: newId,
+        type: "lead",
+        title: fields.company || "New Client",
+        status: stage,
+        owner: "Sales",
+        updatedAt: new Date().toISOString().slice(0, 10),
+        tags: ["lead", stage, "portal-editable"],
+        fields: {
+          ...fields,
+          stage,
+          potentialValueInr,
+          interest: fields.projectDetails,
+          nextAction: fields.nextSteps
+        },
+        body: `Portal update:\n- New lead record created from Enxt Brain on ${new Date().toISOString().slice(0, 10)}.`
+      };
+      
+      return [...current, newLead];
+    });
+  };
+
   const updateLead = (leadId: string, fields: LeadEditState) => {
     setDocuments((current) =>
       current.map((document) => {
@@ -637,7 +665,7 @@ export default function EnxtBrainApp() {
 
             {activeView === "projects" && <ProjectsView projects={projects} selectDocument={selectDocument} />}
 
-            {activeView === "crm" && <CrmView leads={leads} onUpdateLead={updateLead} />}
+            {activeView === "crm" && <CrmView leads={leads} onUpdateLead={updateLead} onAddLead={addLead} />}
 
             {activeView === "finance" && (
               <FinanceView />
@@ -1595,13 +1623,14 @@ function ProjectsView({
   );
 }
 
-function CrmView({ leads, onUpdateLead }: { leads: BrainDocument[]; onUpdateLead: (leadId: string, fields: LeadEditState) => void }) {
+function CrmView({ leads, onUpdateLead, onAddLead }: { leads: BrainDocument[]; onUpdateLead: (leadId: string, fields: LeadEditState) => void; onAddLead: (fields: LeadEditState) => void }) {
   const [leadSearch, setLeadSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("All");
   const [signedFilter, setSignedFilter] = useState("All");
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [expandedLeadIds, setExpandedLeadIds] = useState<string[]>([]);
   const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
+  const [isAddingNewLead, setIsAddingNewLead] = useState(false);
   const [leadEditFields, setLeadEditFields] = useState<LeadEditState>({});
   const leadBoardRef = useRef<HTMLElement | null>(null);
   const [boardScroll, setBoardScroll] = useState({ left: 0, max: 0 });
@@ -1656,6 +1685,13 @@ function CrmView({ leads, onUpdateLead }: { leads: BrainDocument[]; onUpdateLead
   };
 
   const saveLeadEdit = () => {
+    if (isAddingNewLead) {
+      onAddLead(leadEditFields);
+      setIsAddingNewLead(false);
+      setLeadEditFields({});
+      return;
+    }
+
     if (!editingLeadId) {
       return;
     }
@@ -1724,8 +1760,21 @@ function CrmView({ leads, onUpdateLead }: { leads: BrainDocument[]; onUpdateLead
       <section className="panel crm-leads-panel">
         <div className="employee-command">
           <div className="employee-title-block">
-            <p className="eyebrow">Pipeline</p>
-            <h3>Lead Workspace</h3>
+            <div>
+              <p className="eyebrow">Pipeline</p>
+              <h3>Lead Workspace</h3>
+            </div>
+            <button
+              className="primary-button"
+              onClick={() => {
+                setIsAddingNewLead(true);
+                setLeadEditFields({});
+              }}
+              type="button"
+            >
+              <UserPlus size={16} aria-hidden="true" />
+              <span>Add Client</span>
+            </button>
           </div>
           <div className="employee-kpis">
             <div role="button" tabIndex={0} onClick={() => { setStageFilter("All"); setSignedFilter("All"); }} style={{ cursor: "pointer" }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setStageFilter("All"); setSignedFilter("All"); } }}>
@@ -1940,15 +1989,15 @@ function CrmView({ leads, onUpdateLead }: { leads: BrainDocument[]; onUpdateLead
         )}
       </section>
 
-      {editingLead && (
+      {(editingLead || isAddingNewLead) && (
         <div className="modal-backdrop" role="presentation">
-          <div className="employee-edit-panel employee-edit-modal" role="dialog" aria-modal="true" aria-label="Edit lead">
+          <div className="employee-edit-panel employee-edit-modal" role="dialog" aria-modal="true" aria-label={isAddingNewLead ? "Add client" : "Edit lead"}>
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">Lead edit</p>
-                <h3>Edit {asText(editingLead, "company")}</h3>
+                <h3>{isAddingNewLead ? "Add New Client" : `Edit ${asText(editingLead!, "company")}`}</h3>
               </div>
-              <button className="icon-button" onClick={() => setEditingLeadId(null)} title="Close editor" type="button">
+              <button className="icon-button" onClick={() => { setEditingLeadId(null); setIsAddingNewLead(false); }} title="Close editor" type="button">
                 <X size={18} aria-hidden="true" />
               </button>
             </div>
@@ -1979,11 +2028,11 @@ function CrmView({ leads, onUpdateLead }: { leads: BrainDocument[]; onUpdateLead
             <div className="editor-footer">
               <span>Saved edits persist in this browser and update the lead pipeline immediately.</span>
               <div className="editor-actions">
-                <button className="secondary-button" onClick={() => setEditingLeadId(null)} type="button">
+                <button className="secondary-button" onClick={() => { setEditingLeadId(null); setIsAddingNewLead(false); }} type="button">
                   Cancel
                 </button>
                 <button className="primary-button" onClick={saveLeadEdit} type="button">
-                  Save lead
+                  {isAddingNewLead ? "Add client" : "Save lead"}
                 </button>
               </div>
             </div>
