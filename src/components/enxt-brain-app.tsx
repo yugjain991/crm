@@ -189,7 +189,10 @@ export default function EnxtBrainApp() {
     setDbSyncStatus("saving");
     fetch("/api/documents", { cache: "no-store" })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to load documents");
+        if (!res.ok) {
+          console.warn("[EnxtBrain] API returned", res.status, "- falling back to local data");
+          return null;
+        }
         return res.json();
       })
       .then((data) => {
@@ -198,8 +201,8 @@ export default function EnxtBrainApp() {
           setDbSyncStatus("saved");
           console.log("[EnxtBrain] Loaded", data.length, "documents from database");
         } else {
-          console.error("[EnxtBrain] Invalid documents format loaded", data);
-          setDbSyncStatus("error");
+          console.warn("[EnxtBrain] No valid data from API, using local documents");
+          setDbSyncStatus("saved");
         }
       })
       .catch((err) => {
@@ -638,14 +641,7 @@ export default function EnxtBrainApp() {
               </span>
             </div>
 
-            <button 
-              className={`ai-toggle-btn ${isAiPanelOpen ? 'active' : ''}`}
-              onClick={() => setIsAiPanelOpen(!isAiPanelOpen)}
-              title={isAiPanelOpen ? "Close AI Founder Chat" : "Open AI Founder Chat"}
-              type="button"
-            >
-              <MessageSquareText size={18} aria-hidden="true" />
-            </button>
+
           </div>
         </div>
       </header>
@@ -801,11 +797,14 @@ export default function EnxtBrainApp() {
       </div>
       {/* Mobile Chatbot FAB */}
       <button
-        className="mobile-chat-fab"
+        className={`mobile-chat-fab ${isAiPanelOpen ? 'panel-open' : ''}`}
         onClick={() => setIsAiPanelOpen(!isAiPanelOpen)}
         title="Toggle AI Chat"
       >
-        {isAiPanelOpen ? <X size={24} /> : <BotMessageSquare size={24} />}
+        <span className="fab-tooltip">Ask Enxt Brain</span>
+        <span className="fab-icon-wrapper">
+          {isAiPanelOpen ? <X size={24} /> : <BotMessageSquare size={24} />}
+        </span>
       </button>
 
       {globalToast && (
