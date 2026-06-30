@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { RefreshCw, Send, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, FileText } from "lucide-react";
+import { RefreshCw, Send, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, FileText, Trash2 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
 interface StatusRequest {
@@ -24,6 +24,7 @@ interface StatusRequest {
 
 interface StatusDashboardProps {
   onViewReport?: (reportId: string) => void;
+  onShowToast?: (message: string, type: "success" | "error") => void;
 }
 
 const SCHEDULE_LABELS: Record<string, { label: string; emoji: string }> = {
@@ -49,7 +50,7 @@ function getResponseTime(sentAt: string | null, replyTime: string | null): strin
   return `${mins} min`;
 }
 
-export default function StatusDashboardView({ onViewReport }: StatusDashboardProps) {
+export default function StatusDashboardView({ onViewReport, onShowToast }: StatusDashboardProps) {
   const [requests, setRequests] = useState<StatusRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -168,6 +169,37 @@ export default function StatusDashboardView({ onViewReport }: StatusDashboardPro
     }
   };
 
+  // Delete status request
+  const deleteRequest = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this status update?")) return;
+    try {
+      const res = await fetch(`/api/status-requests?id=${id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setRequests((prev) => prev.filter((r) => r.id !== id));
+        if (onShowToast) {
+          onShowToast("status deleted successfully", "success");
+        } else {
+          alert("status deleted successfully");
+        }
+      } else {
+        if (onShowToast) {
+          onShowToast("Failed to delete status update.", "error");
+        } else {
+          alert("Failed to delete status update.");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete status update:", err);
+      if (onShowToast) {
+        onShowToast("Failed to delete status update.", "error");
+      } else {
+        alert("Failed to delete status update.");
+      }
+    }
+  };
+
   // Summary stats
   const stats = useMemo(() => {
     const total = requests.length;
@@ -271,6 +303,7 @@ export default function StatusDashboardView({ onViewReport }: StatusDashboardPro
                     <th>Response</th>
                     <th>Status</th>
                     <th>Latest Project Update</th>
+                    <th style={{ width: "60px", textAlign: "center" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -311,17 +344,17 @@ export default function StatusDashboardView({ onViewReport }: StatusDashboardPro
                               onClick={() => onViewReport(req.report_id!)}
                               style={{
                                 display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                background: 'var(--accent)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                padding: '4px 8px',
-                                fontSize: '0.7rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap'
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  background: 'var(--accent)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '4px 8px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap'
                               }}
                             >
                               <FileText size={12} />
@@ -329,6 +362,15 @@ export default function StatusDashboardView({ onViewReport }: StatusDashboardPro
                             </button>
                           )}
                         </div>
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <button
+                          onClick={() => deleteRequest(req.id)}
+                          className="status-delete-btn"
+                          title="Delete status update"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   ))}

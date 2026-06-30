@@ -3630,6 +3630,201 @@ main {
   align-items: center;
   justify-content: center;
   gap: 12px;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.status-summary-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s;
+}
+
+.status-summary-card:hover {
+  transform: translateY(-2px);
+}
+
+.status-summary-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.status-summary-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.status-summary-card.replied .status-summary-number { color: #10b981; }
+.status-summary-card.waiting .status-summary-number { color: #f59e0b; }
+.status-summary-card.not-replied .status-summary-number { color: #ef4444; }
+
+.status-schedule-block {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.status-schedule-heading {
+  margin: 0;
+  padding: 16px 20px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-table-wrapper {
+  overflow-x: auto;
+}
+
+.status-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.status-table th,
+.status-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.status-table th {
+  background: rgba(0,0,0,0.02);
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
+
+.status-row:last-child td {
+  border-bottom: none;
+}
+
+.status-cell-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.status-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-badge-pill.replied {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.status-badge-pill.sent {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.status-badge-pill.not_replied {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.status-badge-pill.pending {
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+}
+
+.status-cell-update {
+  max-width: 300px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.status-row-not_replied {
+  background: rgba(239, 68, 68, 0.03);
+}
+
+.status-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+}
+
+.status-empty h4 {
+  margin: 16px 0 8px;
+  font-size: 1.2rem;
+  color: var(--ink);
+}
+
+.status-empty p {
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.status-dashboard-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   height: 400px;
   color: var(--muted);
   font-weight: 500;
@@ -3637,4 +3832,22 @@ main {
 
 .spin-animation {
   animation: spin 1s linear infinite;
+}
+
+.status-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all var(--transition-fast);
+}
+
+.status-delete-btn:hover {
+  background: rgba(180, 35, 24, 0.1);
+  color: var(--red);
 }

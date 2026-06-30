@@ -36,3 +36,26 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error?.message || 'Failed to fetch status requests' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing status request id' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('status_requests')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('[status-requests] Error deleting:', error);
+    return NextResponse.json({ error: error?.message || 'Failed to delete status request' }, { status: 500 });
+  }
+}

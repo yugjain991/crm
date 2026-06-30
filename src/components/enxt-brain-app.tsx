@@ -758,6 +758,7 @@ export default function EnxtBrainApp() {
                           showToast("Report not found in documents", "error");
                         }
                       }}
+                      onShowToast={showToast}
                     />
                   )}
                 </div>
