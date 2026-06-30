@@ -29,9 +29,6 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      upsertResult: {
-        error: upsertErr
-      },
       env: {
         NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'not set',
         SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'not set',
