@@ -324,98 +324,167 @@ export default function StatusDashboardView({ onViewReport, onShowToast }: Statu
                   No check-in requests sent for this schedule.
                 </div>
               ) : (
-                <div className="status-table-wrapper">
-                  <table className="status-table">
-                    <thead>
-                      <tr>
-                        <th>Employee</th>
-                        <th>Department</th>
-                        <th>Project</th>
-                        <th>Sent At</th>
-                        <th>Reply Time</th>
-                        <th>Response</th>
-                        <th>Status</th>
-                        <th>Latest Project Update</th>
-                        <th style={{ width: "60px", textAlign: "center" }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((req) => (
-                        <tr key={req.id} className={`status-row status-row-${req.status}`}>
-                          <td className="status-cell-name">
-                            <div className="status-avatar">
-                              {req.employee_name.charAt(0).toUpperCase()}
-                            </div>
-                            <span>{req.employee_name}</span>
-                          </td>
-                          <td>{req.department || "--"}</td>
-                          <td>{req.project || "--"}</td>
-                          <td>{formatTime(req.sent_at)}</td>
-                          <td>{formatTime(req.reply_time)}</td>
-                          <td>{getResponseTime(req.sent_at, req.reply_time)}</td>
-                          <td>
-                            {(() => {
-                              const expired = isRequestExpired(req.reply_deadline, req.status);
-                              const displayStatus = expired ? "not_replied" : req.status;
-                              return (
-                                <span className={`status-badge-pill ${displayStatus}`}>
-                                  {displayStatus === "replied" && (
-                                    <><CheckCircle2 size={12} /> Replied</>
-                                  )}
-                                  {displayStatus === "sent" && (
-                                    <><Clock size={12} /> Waiting</>
-                                  )}
-                                  {displayStatus === "not_replied" && (
-                                    <><XCircle size={12} /> Not Replied</>
-                                  )}
-                                  {displayStatus === "pending" && (
-                                    <><AlertCircle size={12} /> Pending</>
-                                  )}
-                                </span>
-                              );
-                            })()}
-                          </td>
-                          <td className="status-cell-update">
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <>
+                  {/* Desktop Table view */}
+                  <div className="status-table-wrapper status-desktop-only">
+                    <table className="status-table">
+                      <thead>
+                        <tr>
+                          <th>Employee</th>
+                          <th>Department</th>
+                          <th>Project</th>
+                          <th>Sent At</th>
+                          <th>Reply Time</th>
+                          <th>Response</th>
+                          <th>Status</th>
+                          <th>Latest Project Update</th>
+                          <th style={{ width: "60px", textAlign: "center" }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((req) => (
+                          <tr key={req.id} className={`status-row status-row-${req.status}`}>
+                            <td className="status-cell-name">
+                              <div className="status-avatar">
+                                {req.employee_name.charAt(0).toUpperCase()}
+                              </div>
+                              <span>{req.employee_name}</span>
+                            </td>
+                            <td>{req.department || "--"}</td>
+                            <td>{req.project || "--"}</td>
+                            <td style={{ whiteSpace: 'nowrap' }}>{formatTime(req.sent_at)}</td>
+                            <td style={{ whiteSpace: 'nowrap' }}>{formatTime(req.reply_time)}</td>
+                            <td style={{ whiteSpace: 'nowrap' }}>{getResponseTime(req.sent_at, req.reply_time)}</td>
+                            <td>
+                              {(() => {
+                                const expired = isRequestExpired(req.reply_deadline, req.status);
+                                const displayStatus = expired ? "not_replied" : req.status;
+                                return (
+                                  <span className={`status-badge-pill ${displayStatus}`}>
+                                    {displayStatus === "replied" && (
+                                      <><CheckCircle2 size={12} /> Replied</>
+                                    )}
+                                    {displayStatus === "sent" && (
+                                      <><Clock size={12} /> Waiting</>
+                                    )}
+                                    {displayStatus === "not_replied" && (
+                                      <><XCircle size={12} /> Not Replied</>
+                                    )}
+                                    {displayStatus === "pending" && (
+                                      <><AlertCircle size={12} /> Pending</>
+                                    )}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                            <td className="status-cell-update">
                               <span>{req.update_text || "--"}</span>
-                              {req.report_id && onViewReport && (
-                                <button
-                                  onClick={() => onViewReport(req.report_id!)}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    background: 'var(--accent)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    padding: '4px 8px',
-                                    fontSize: '0.7rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  <FileText size={12} />
-                                  View Report
-                                </button>
-                              )}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              <button
+                                onClick={() => deleteRequest(req.id)}
+                                className="status-delete-btn"
+                                title="Delete status update"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Card view */}
+                  <div className="status-mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' }}>
+                    {items.map((req) => {
+                      const expired = isRequestExpired(req.reply_deadline, req.status);
+                      const displayStatus = expired ? "not_replied" : req.status;
+                      return (
+                        <div 
+                          key={req.id} 
+                          className={`status-mobile-card status-row-${displayStatus}`}
+                          style={{
+                            background: 'var(--panel)',
+                            border: '1px solid var(--line)',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                            position: 'relative',
+                            boxShadow: 'var(--shadow)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div className="status-avatar" style={{ margin: 0 }}>
+                                {req.employee_name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: '0.9rem' }}>{req.employee_name}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{req.department || "--"}</div>
+                              </div>
                             </div>
-                          </td>
-                          <td style={{ textAlign: "center" }}>
                             <button
                               onClick={() => deleteRequest(req.id)}
                               className="status-delete-btn"
-                              title="Delete status update"
+                              style={{ padding: '6px' }}
                             >
                               <Trash2 size={14} />
                             </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </div>
+
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1fr 1fr', 
+                            gap: '8px 16px', 
+                            fontSize: '0.78rem',
+                            borderTop: '1px solid var(--line)',
+                            borderBottom: '1px solid var(--line)',
+                            padding: '10px 0'
+                          }}>
+                            <div>
+                              <span style={{ color: 'var(--muted)', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Project</span>
+                              <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{req.project || "--"}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: 'var(--muted)', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Status</span>
+                              <span className={`status-badge-pill ${displayStatus}`} style={{ padding: '2px 8px', fontSize: '0.68rem' }}>
+                                {displayStatus === "replied" && "Replied"}
+                                {displayStatus === "sent" && "Waiting"}
+                                {displayStatus === "not_replied" && "Not Replied"}
+                                {displayStatus === "pending" && "Pending"}
+                              </span>
+                            </div>
+                            <div>
+                              <span style={{ color: 'var(--muted)', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Sent At</span>
+                              <span style={{ fontWeight: 500 }}>{formatTime(req.sent_at)}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: 'var(--muted)', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Response Time</span>
+                              <span style={{ fontWeight: 500 }}>{getResponseTime(req.sent_at, req.reply_time)}</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <span style={{ color: 'var(--muted)', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Latest Project Update</span>
+                            <div style={{ 
+                              background: 'var(--panel-soft)', 
+                              padding: '10px 12px', 
+                              borderRadius: '8px', 
+                              fontSize: '0.82rem', 
+                              lineHeight: '1.4',
+                              color: 'var(--ink)'
+                            }}>
+                              {req.update_text || "--"}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           );
