@@ -12,7 +12,7 @@ const GREETINGS: Record<Schedule, string> = {
 };
 
 const SCHEDULE_TIMES: Record<Schedule, string> = {
-  morning: '09:00',
+  morning: '10:00',
   midday: '13:00',
   evening: '18:00',
 };

@@ -216,8 +216,8 @@ export async function GET(request: Request) {
     let scheduleMessage = '';
 
     // Check if current time is within a 10-minute window of the check-in time
-    // 9:00 AM to 9:10 AM IST
-    if (istHour === 9 && istMinute >= 0 && istMinute < 10) {
+    // 10:00 AM to 10:10 AM IST
+    if (istHour === 10 && istMinute >= 0 && istMinute < 10) {
       targetSchedule = 'morning';
     }
     // 1:00 PM to 1:10 PM IST

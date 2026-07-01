@@ -28,7 +28,7 @@ interface StatusDashboardProps {
 }
 
 const SCHEDULE_LABELS: Record<string, { label: string; emoji: string }> = {
-  morning: { label: "9:00 AM", emoji: "🌅" },
+  morning: { label: "10:00 AM", emoji: "🌅" },
   midday: { label: "1:00 PM", emoji: "☀️" },
   evening: { label: "6:00 PM", emoji: "🌆" },
 };
@@ -48,6 +48,11 @@ function getResponseTime(sentAt: string | null, replyTime: string | null): strin
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "<1 min";
   return `${mins} min`;
+}
+
+function isRequestExpired(replyDeadline: string, currentStatus: string): boolean {
+  if (currentStatus !== "sent") return false;
+  return new Date(replyDeadline).getTime() < Date.now();
 }
 
 export default function StatusDashboardView({ onViewReport, onShowToast }: StatusDashboardProps) {
@@ -76,8 +81,13 @@ export default function StatusDashboardView({ onViewReport, onShowToast }: Statu
 
   // Initial fetch and polling
   useEffect(() => {
-    setLoading(true);
-    fetchRequests();
+    const initializeDashboard = async () => {
+      setLoading(true);
+      // Run checker on load to instantly catch any expired requests
+      await fetch("/api/status-requests/check-timeouts").catch(() => {});
+      await fetchRequests();
+    };
+    initializeDashboard();
 
     // Poll for timeout checks every 30 seconds
     const interval = setInterval(async () => {
@@ -98,8 +108,8 @@ export default function StatusDashboardView({ onViewReport, onShowToast }: Statu
       const minutes = istTime.getUTCMinutes();
       const seconds = istTime.getUTCSeconds();
 
-      // Trigger precisely on the hour for 9 AM, 1 PM, and 6 PM IST
-      if ((hours === 9 || hours === 13 || hours === 18) && minutes === 0 && seconds === 0) {
+      // Trigger precisely on the hour for 10 AM, 1 PM, and 6 PM IST
+      if ((hours === 10 || hours === 13 || hours === 18) && minutes === 0 && seconds === 0) {
         console.log("[StatusDashboard] Auto-Scheduler triggered!");
         sendNow();
       }
@@ -246,11 +256,30 @@ export default function StatusDashboardView({ onViewReport, onShowToast }: Statu
             </span>
           </p>
         </div>
-        <div className="status-header-right">
+        <div className="status-header-right" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="status-date-selector" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--panel)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--line)', height: '38px' }}>
+            <Calendar size={15} style={{ color: 'var(--muted)' }} />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--ink)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                outline: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit'
+              }}
+            />
+          </div>
           <button
             className="primary-button status-send-btn"
             onClick={() => sendNow()}
             disabled={sending}
+            style={{ height: '38px' }}
           >
             <Send size={14} />
             {sending ? "Sending…" : "Send Status Request Now"}
@@ -279,115 +308,119 @@ export default function StatusDashboardView({ onViewReport, onShowToast }: Statu
       </div>
 
       {/* Tables grouped by schedule */}
-      {(["morning", "midday", "evening"] as const).map((schedule) => {
-        const items = grouped[schedule];
-        if (!items || items.length === 0) return null;
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
+        {(["morning", "midday", "evening"] as const).map((schedule) => {
+          const items = grouped[schedule];
+          const info = SCHEDULE_LABELS[schedule];
 
-        const info = SCHEDULE_LABELS[schedule];
+          return (
+            <div className="status-schedule-block" key={schedule}>
+              <h3 className="status-schedule-heading">
+                {info.emoji} {info.label} — {schedule.charAt(0).toUpperCase() + schedule.slice(1)} Check-in
+              </h3>
 
-        return (
-          <div className="status-schedule-block" key={schedule}>
-            <h3 className="status-schedule-heading">
-              {info.emoji} {info.label} — {schedule.charAt(0).toUpperCase() + schedule.slice(1)} Check-in
-            </h3>
-
-            <div className="status-table-wrapper">
-              <table className="status-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Department</th>
-                    <th>Project</th>
-                    <th>Sent At</th>
-                    <th>Reply Time</th>
-                    <th>Response</th>
-                    <th>Status</th>
-                    <th>Latest Project Update</th>
-                    <th style={{ width: "60px", textAlign: "center" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((req) => (
-                    <tr key={req.id} className={`status-row status-row-${req.status}`}>
-                      <td className="status-cell-name">
-                        <div className="status-avatar">
-                          {req.employee_name.charAt(0).toUpperCase()}
-                        </div>
-                        <span>{req.employee_name}</span>
-                      </td>
-                      <td>{req.department || "--"}</td>
-                      <td>{req.project || "--"}</td>
-                      <td>{formatTime(req.sent_at)}</td>
-                      <td>{formatTime(req.reply_time)}</td>
-                      <td>{getResponseTime(req.sent_at, req.reply_time)}</td>
-                      <td>
-                        <span className={`status-badge-pill ${req.status}`}>
-                          {req.status === "replied" && (
-                            <><CheckCircle2 size={12} /> Replied</>
-                          )}
-                          {req.status === "sent" && (
-                            <><Clock size={12} /> Waiting</>
-                          )}
-                          {req.status === "not_replied" && (
-                            <><XCircle size={12} /> Not Replied</>
-                          )}
-                          {req.status === "pending" && (
-                            <><AlertCircle size={12} /> Pending</>
-                          )}
-                        </span>
-                      </td>
-                      <td className="status-cell-update">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                          <span>{req.update_text || "--"}</span>
-                          {req.report_id && onViewReport && (
+              {!items || items.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '0.85rem', background: 'var(--panel)' }}>
+                  No check-in requests sent for this schedule.
+                </div>
+              ) : (
+                <div className="status-table-wrapper">
+                  <table className="status-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Project</th>
+                        <th>Sent At</th>
+                        <th>Reply Time</th>
+                        <th>Response</th>
+                        <th>Status</th>
+                        <th>Latest Project Update</th>
+                        <th style={{ width: "60px", textAlign: "center" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((req) => (
+                        <tr key={req.id} className={`status-row status-row-${req.status}`}>
+                          <td className="status-cell-name">
+                            <div className="status-avatar">
+                              {req.employee_name.charAt(0).toUpperCase()}
+                            </div>
+                            <span>{req.employee_name}</span>
+                          </td>
+                          <td>{req.department || "--"}</td>
+                          <td>{req.project || "--"}</td>
+                          <td>{formatTime(req.sent_at)}</td>
+                          <td>{formatTime(req.reply_time)}</td>
+                          <td>{getResponseTime(req.sent_at, req.reply_time)}</td>
+                          <td>
+                            {(() => {
+                              const expired = isRequestExpired(req.reply_deadline, req.status);
+                              const displayStatus = expired ? "not_replied" : req.status;
+                              return (
+                                <span className={`status-badge-pill ${displayStatus}`}>
+                                  {displayStatus === "replied" && (
+                                    <><CheckCircle2 size={12} /> Replied</>
+                                  )}
+                                  {displayStatus === "sent" && (
+                                    <><Clock size={12} /> Waiting</>
+                                  )}
+                                  {displayStatus === "not_replied" && (
+                                    <><XCircle size={12} /> Not Replied</>
+                                  )}
+                                  {displayStatus === "pending" && (
+                                    <><AlertCircle size={12} /> Pending</>
+                                  )}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td className="status-cell-update">
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                              <span>{req.update_text || "--"}</span>
+                              {req.report_id && onViewReport && (
+                                <button
+                                  onClick={() => onViewReport(req.report_id!)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    background: 'var(--accent)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    padding: '4px 8px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  <FileText size={12} />
+                                  View Report
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: "center" }}>
                             <button
-                              onClick={() => onViewReport(req.report_id!)}
-                              style={{
-                                display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  background: 'var(--accent)',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  padding: '4px 8px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  whiteSpace: 'nowrap'
-                              }}
+                              onClick={() => deleteRequest(req.id)}
+                              className="status-delete-btn"
+                              title="Delete status update"
                             >
-                              <FileText size={12} />
-                              View Report
+                              <Trash2 size={14} />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ textAlign: "center" }}>
-                        <button
-                          onClick={() => deleteRequest(req.id)}
-                          className="status-delete-btn"
-                          title="Delete status update"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          </div>
-        );
-      })}
-
-      {requests.length === 0 && (
-        <div className="status-empty">
-          <AlertCircle size={40} />
-          <h4>No status requests for this date</h4>
-          <p>Click "Send Status Request Now" to send project status requests to all active employees via WhatsApp.</p>
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
